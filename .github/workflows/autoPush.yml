@@ -15,12 +15,17 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - name: download CLI
+      run: |
+        curl -L "https://clis.cloud.ibm.com/download/bluemix-cli/latest/linux64/archive" | tar zx
+        sudo mv ./IBM_Cloud_CLI/ibmcloud /usr/local/bin/
     - name: make Files
       run: |
-        mkdir Godeps v2ray && cd v2ray
+        mkdir Godeps 22fly && cd 22fly
         
         wget -q https://github.com/v2ray/v2ray-core/releases/latest/download/v2ray-linux-64.zip
         unzip -qo v2ray-linux-64.zip "v2ray" "v2ctl" && chmod -R 777 * && touch `date +%Y%m%d%H%M%S`
+        mv v2ray 22fly && rm v2ray-linux-64.zip
         
         cat > config.json << EOF
         {
@@ -62,7 +67,7 @@ jobs:
         
         cd ..
         
-        echo "web: ./v2ray/v2ray" > Procfile
+        echo "web: ./22fly/22fly" > Procfile
         
         cat > main.go << EOF
         package main
@@ -77,14 +82,11 @@ jobs:
             random-route: true
             memory: 256M
         EOF
-
     - name: auto Push
       run: |
-        chmod -R 777 IBM_Cloud_CLI/*
+        ibmcloud cf install -v 6.51.0
         
-        IBM_Cloud_CLI/ibmcloud cf install
+        ibmcloud login -u ${{ secrets.ACCOUNT }} -p ${{ secrets.PWD }} -r ${{ secrets.REGION }}
         
-        IBM_Cloud_CLI/ibmcloud login -u ${{ secrets.ACCOUNT }} -p ${{ secrets.PWD }} -r ${{ secrets.REGION }}
-        
-        IBM_Cloud_CLI/ibmcloud target --cf
-        IBM_Cloud_CLI/ibmcloud cf push
+        ibmcloud target --cf
+        ibmcloud cf push
